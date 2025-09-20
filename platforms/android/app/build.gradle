@@ -32,8 +32,8 @@ android {
     externalNativeBuild {
         cmake {
             version '3.31.1'
-            buildStagingDirectory '../../out/android/cmake-build'
-            path '../../CMakeLists.txt'
+            buildStagingDirectory '../../../out/android/cmake-build'
+            path '../../../CMakeLists.txt'
         }
     }
 
@@ -78,7 +78,7 @@ android {
             manifest.srcFile 'AndroidManifest.xml'
             java.srcDirs = ['java']
             res.srcDirs = ['res']
-            assets.srcDirs = ['../../ui/cocos-studio']
+            assets.srcDirs = ['../../../ui/cocos-studio']
         }
 
     }

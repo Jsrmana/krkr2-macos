@@ -125,10 +125,6 @@ It supports **Android, Windows, Linux, and MacOS**, allowing users to play KiriK
   cmake --build --preset="MacOS Debug Build"
   ```
 
-* **Using Docker**:
-* Build Linux: `docker build -f dockers/linux.Dockerfile -t linux-builder .`
-* Build Android: `docker build -f dockers/android.Dockerfile -t android-builder .`
-
 ---
 
 ## Executable Location

@@ -31,7 +31,7 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     LocalFree(argv);
 
-    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::info);
 
     static auto core_logger = spdlog::stdout_color_mt("core");
     static auto tjs2_logger = spdlog::stdout_color_mt("tjs2");

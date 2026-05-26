@@ -356,6 +356,7 @@ NCB_REGISTER_SUBCLASS_DELAY(EmotePlayer) {
     NCB_METHOD(getVariableFrameValueAt);
     NCB_METHOD_RAW_CALLBACK(setVariable, &EmotePlayer::setVariableCompat, 0);
     NCB_METHOD(getVariable);
+    NCB_METHOD(getVariableFrameList);
     NCB_METHOD_RAW_CALLBACK(startWind, &EmotePlayer::startWindCompat, 0);
     NCB_METHOD_RAW_CALLBACK(stopWind, &EmotePlayer::stopWindCompat, 0);
     NCB_METHOD(countMainTimelines);
@@ -382,6 +383,7 @@ NCB_REGISTER_SUBCLASS_DELAY(EmotePlayer) {
     NCB_METHOD(fadeOutTimeline);
     NCB_METHOD(getPlayingTimelineInfoList);
     NCB_METHOD(skip);
+    NCB_METHOD(skipToSync);
     NCB_METHOD(addPlayCallback);
     NCB_METHOD(pass);
     NCB_METHOD(progress);
@@ -652,6 +654,7 @@ NCB_REGISTER_CLASS(D3DEmotePlayer) {
     NCB_METHOD(getVariableFrameValueAt);
     NCB_METHOD_RAW_CALLBACK(setVariable, &EmotePlayer::setVariableCompat, 0);
     NCB_METHOD(getVariable);
+    NCB_METHOD(getVariableFrameList);
     NCB_METHOD_RAW_CALLBACK(startWind, &EmotePlayer::startWindCompat, 0);
     NCB_METHOD_RAW_CALLBACK(stopWind, &EmotePlayer::stopWindCompat, 0);
     NCB_METHOD(countMainTimelines);
@@ -677,6 +680,7 @@ NCB_REGISTER_CLASS(D3DEmotePlayer) {
     NCB_METHOD(fadeOutTimeline);
     NCB_METHOD(getPlayingTimelineInfoList);
     NCB_METHOD(skip);
+    NCB_METHOD(skipToSync);
     NCB_METHOD(addPlayCallback);
     NCB_METHOD(pass);
     NCB_METHOD(progress);

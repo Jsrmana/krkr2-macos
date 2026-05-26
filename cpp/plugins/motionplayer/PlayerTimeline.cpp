@@ -1,6 +1,8 @@
 // PlayerTimeline.cpp — timeline queries and playback raw callbacks
 // Split out for maintainability.
 //
+#include <algorithm>
+
 #include "PlayerInternal.h"
 #include "ncbind.hpp"
 
@@ -8,11 +10,38 @@ using namespace motion::internal;
 
 namespace motion {
     void Player::skipToSync() {
-        for(auto &[_, state] : _runtime->timelines) {
-            if(state.totalFrames > 0.0) {
-                state.currentTime = state.totalFrames;
+        ensureMotionLoaded();
+        if(!_runtime || !_runtime->activeMotion) {
+            LOGGER->warn(
+                "Player::skipToSync(): no active motion (SDL3 ref: requires "
+                "_currmotion)");
+            return;
+        }
+
+        // SDL3 ref: sdl3/emoteplayerclass.cpp skipToSync() sets clockPassed to
+        // emotefile::getSyncTime(). We approximate sync time from timeline
+        // metadata because libkrkr2.so stores it separately from timeline end.
+        double syncTime = 0.0;
+        for(const auto &[label, binding] :
+            _runtime->activeMotion->timelineControlByLabel) {
+            syncTime = std::max(syncTime, binding.lastTime);
+            if(binding.loopEnd >= binding.loopBegin) {
+                syncTime = std::max(syncTime, binding.loopEnd);
             }
-            if(!state.loop) {
+            (void)label;
+        }
+        if(const auto *clip = selectActiveClip()) {
+            syncTime = std::max(syncTime, clip->totalFrames);
+        }
+        LOGGER->debug(
+            "Player::skipToSync(): seeking timelines to syncTime={:.3f} "
+            "(SDL3 ref: getSyncTime(); libkrkr2.so may differ)",
+            syncTime);
+
+        for(auto &[_, state] : _runtime->timelines) {
+            state.currentTime = syncTime;
+            if(state.totalFrames > 0.0 &&
+               state.currentTime >= state.totalFrames && !state.loop) {
                 state.playing = false;
             }
         }
@@ -29,6 +58,8 @@ namespace motion {
             _runtime->playingTimelineLabels.erase(
                 it, _runtime->playingTimelineLabels.end());
         }
+        _frameLoopTime = syncTime;
+        _clampedEvalTime = syncTime;
         _syncWaiting = false;
         _syncActive = false;
         _allplaying = !_runtime->playingTimelineLabels.empty();
@@ -104,6 +135,13 @@ namespace motion {
             return false;
         }
         const auto key = detail::narrow(label);
+        if(const auto controlIt =
+               _runtime->activeMotion->timelineControlByLabel.find(key);
+           controlIt != _runtime->activeMotion->timelineControlByLabel.end()) {
+            // SDL3 ref: sdl3/emoteplayerclass.cpp getLoopTimeline()
+            // returns timelineControl.lastTime < 0.
+            return controlIt->second.lastTime < 0.0;
+        }
         if(const auto it = _runtime->activeMotion->loopTimelines.find(key);
            it != _runtime->activeMotion->loopTimelines.end()) {
             return it->second;
@@ -141,6 +179,19 @@ namespace motion {
     tjs_int Player::getTimelineTotalFrameCount(ttstr label) {
         ensureMotionLoaded();
         const auto key = detail::narrow(label);
+        if(_runtime->activeMotion) {
+            if(const auto controlIt =
+                   _runtime->activeMotion->timelineControlByLabel.find(key);
+               controlIt !=
+               _runtime->activeMotion->timelineControlByLabel.end()) {
+                const auto &binding = controlIt->second;
+                if(binding.loopEnd >= binding.loopBegin) {
+                    // SDL3 ref: loopEnd - loopBegin + 1
+                    return static_cast<tjs_int>(binding.loopEnd -
+                                                binding.loopBegin + 1.0);
+                }
+            }
+        }
         if(const auto it = _runtime->timelines.find(key);
            it != _runtime->timelines.end()) {
             return static_cast<tjs_int>(it->second.totalFrames);

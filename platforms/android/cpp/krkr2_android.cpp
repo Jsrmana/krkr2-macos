@@ -37,7 +37,7 @@ static bool DumpFilter(void *data) {
 [[maybe_unused]] void cocos_android_app_init(JNIEnv *env) { // for cocos3.10+
 
     spdlog::set_pattern("%v");
-    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::info);
 
     static auto core_logger =
         spdlog::android_logger_mt("core", "KrKr2NativeCore");

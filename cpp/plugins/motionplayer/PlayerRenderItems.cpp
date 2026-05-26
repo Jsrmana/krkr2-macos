@@ -244,6 +244,24 @@ namespace motion {
         const int bitmask = _runtime->isEmoteMode ? 5193 : 5185;
         const auto &dam = _runtime->drawAffineMatrix;
         std::unordered_set<int> requiredGroupNodeIndices;
+        // SDL3 ref: child motion nodes live in the child player's own nodeList;
+        // merged child preparedRenderItems keep foreign nodeIndex values and
+        // must not be indexed through this player's nodes[] vector.
+        const auto isLocalPreparedItem =
+            [runtime = _runtime.get()](
+                const detail::PlayerRuntime::PreparedRenderItem &entry)
+            -> bool {
+            return entry.nativeLifetimeOwner == nullptr ||
+                entry.nativeLifetimeOwner == runtime;
+        };
+        const auto tryGetLocalNode =
+            [&nodes](int nodeIndex) -> const detail::MotionNode * {
+            if(nodeIndex < 0 ||
+               static_cast<size_t>(nodeIndex) >= nodes.size()) {
+                return nullptr;
+            }
+            return &nodes[static_cast<size_t>(nodeIndex)];
+        };
 
         auto appendChildEntriesAtCurrentNode = [&](Player *child,
                                                    bool nodePriorDraw) {
@@ -290,6 +308,11 @@ namespace motion {
             entries.insert(entries.end(),
                            std::make_move_iterator(childEntries.begin()),
                            std::make_move_iterator(childEntries.end()));
+            LOGGER->debug(
+                "appendPreparedRenderItems: merged {} child render items "
+                "(foreign nodeIndex space; SDL3 ref: child motion renders in "
+                "own emotemotion context)",
+                childEntries.size());
             detail::logoChainTraceLogf(motionPath, "prepare.childMerge",
                                        "0x6C2334/0x6D4F00", _clampedEvalTime,
                                        "childMotionPath={} appendedAtNode={} "
@@ -803,7 +826,9 @@ namespace motion {
         std::unordered_map<int, size_t> entryIndexByNode;
         entryIndexByNode.reserve(entries.size());
         for(size_t i = 0; i < entries.size(); ++i) {
-            entryIndexByNode.emplace(entries[i].nodeIndex, i);
+            if(isLocalPreparedItem(entries[i])) {
+                entryIndexByNode.emplace(entries[i].nodeIndex, i);
+            }
         }
 
         auto unionPaintBox =
@@ -829,6 +854,9 @@ namespace motion {
             };
 
         for(const auto &childEntry : entries) {
+            if(!isLocalPreparedItem(childEntry)) {
+                continue;
+            }
             for(int ancestorIndex = childEntry.visibleAncestorIndex;
                 ancestorIndex >= 0;) {
                 const auto parentIt = entryIndexByNode.find(ancestorIndex);
@@ -836,9 +864,17 @@ namespace motion {
                     break;
                 }
                 auto &parentEntry = entries[parentIt->second];
-                const auto &ancestorNode = nodes[parentEntry.nodeIndex];
+                if(!isLocalPreparedItem(parentEntry)) {
+                    break;
+                }
+                const detail::MotionNode *ancestorNode =
+                    tryGetLocalNode(parentEntry.nodeIndex);
+                if(!ancestorNode) {
+                    break;
+                }
                 unionPaintBox(parentEntry, childEntry);
-                const int nextAncestorIndex = ancestorNode.visibleAncestorIndex;
+                const int nextAncestorIndex =
+                    ancestorNode->visibleAncestorIndex;
                 if(nextAncestorIndex == ancestorIndex) {
                     break;
                 }
@@ -864,6 +900,24 @@ namespace motion {
         const auto motionPath = _runtime->activeMotion
             ? _runtime->activeMotion->path
             : std::string{};
+        // Merged child-player items carry nodeIndex into the child's nodes[]
+        // vector. Never dereference those indices against this player's
+        // nodes[].
+        const auto isLocalPreparedItem =
+            [runtime = _runtime.get()](
+                const detail::PlayerRuntime::PreparedRenderItem &entry)
+            -> bool {
+            return entry.nativeLifetimeOwner == nullptr ||
+                entry.nativeLifetimeOwner == runtime;
+        };
+        const auto tryGetLocalNode =
+            [this](int nodeIndex) -> const detail::MotionNode * {
+            if(!_runtime || nodeIndex < 0 ||
+               static_cast<size_t>(nodeIndex) >= _runtime->nodes.size()) {
+                return nullptr;
+            }
+            return &_runtime->nodes[static_cast<size_t>(nodeIndex)];
+        };
 
 #if defined(KRKR2_WASMTIME_HEADLESS)
         detail::motionTraceRenderBuildItemsEnter(this);
@@ -909,7 +963,9 @@ namespace motion {
         for(auto &item : _runtime->preparedRenderItems) {
             item.parentItem = nullptr;
             item.childItems.clear();
-            entryPtrByNode.emplace(item.nodeIndex, &item);
+            if(isLocalPreparedItem(item)) {
+                entryPtrByNode.emplace(item.nodeIndex, &item);
+            }
         }
         for(auto &item : _runtime->preparedRenderItems) {
             if(item.selfSeedChildList) {
@@ -938,7 +994,8 @@ namespace motion {
         // preview mode, otherwise their child vector is spliced into the
         // parent's child vector.
         for(auto &parentItem : _runtime->preparedRenderItems) {
-            if(!parentItem.selfSeedChildList) {
+            if(!parentItem.selfSeedChildList ||
+               !isLocalPreparedItem(parentItem)) {
                 continue;
             }
             const auto parentNodeIndex = parentItem.nodeIndex;
@@ -949,14 +1006,23 @@ namespace motion {
                 if(candidate.visibleAncestorIndex != parentNodeIndex) {
                     continue;
                 }
-                const auto &candidateNode =
-                    _runtime->nodes[static_cast<size_t>(candidate.nodeIndex)];
-                if(candidateNode.nodeType == 0) {
+                if(!isLocalPreparedItem(candidate)) {
+                    continue;
+                }
+                const detail::MotionNode *candidateNode =
+                    tryGetLocalNode(candidate.nodeIndex);
+                if(!candidateNode) {
+                    LOGGER->warn("prepareRenderItems: skip composite candidate "
+                                 "nodeIndex={} (nodes.size={})",
+                                 candidate.nodeIndex, _runtime->nodes.size());
+                    continue;
+                }
+                if(candidateNode->nodeType == 0) {
                     candidate.parentItem = &parentItem;
                     parentItem.childItems.push_back(&candidate);
                     continue;
                 }
-                if(candidateNode.nodeType != 3) {
+                if(candidateNode->nodeType != 3) {
                     continue;
                 }
                 if(_preview) {
@@ -984,12 +1050,15 @@ namespace motion {
         // writes above remain authoritative for their covered cases. See
         // analysis/RenderPipeline_Path_A_ImplRef.md §7.3.
         for(auto &entry : _runtime->preparedRenderItems) {
-            if(entry.parentItem != nullptr) {
+            if(entry.parentItem != nullptr || !isLocalPreparedItem(entry)) {
                 continue;
             }
-            const auto &entryNode =
-                _runtime->nodes[static_cast<size_t>(entry.nodeIndex)];
-            if(entryNode.nodeType != 3) {
+            const detail::MotionNode *entryNode =
+                tryGetLocalNode(entry.nodeIndex);
+            if(!entryNode) {
+                continue;
+            }
+            if(entryNode->nodeType != 3) {
                 continue;
             }
             const int va = entry.visibleAncestorIndex;

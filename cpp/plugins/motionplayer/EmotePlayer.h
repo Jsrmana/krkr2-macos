@@ -39,13 +39,12 @@ namespace motion {
         void setChara(ttstr v) { _player.setChara(v); }
         [[nodiscard]] ttstr getChara() const { return _player.getChara(); }
 
-        void setMotion(ttstr v) { _player.playMotionLike_0x6B2284(v, 0); }
-        [[nodiscard]] ttstr getMotion() const { return _player.getMotion(); }
+        // SDL3 ref: motion property stores clip label; play() starts playback.
+        void setMotion(ttstr v);
+        [[nodiscard]] ttstr getMotion() const;
 
-        void setMotionKey(ttstr v) { _player.setMotionKey(v); }
-        [[nodiscard]] ttstr getMotionKey() const {
-            return _player.getMotionKey();
-        }
+        void setMotionKey(ttstr v);
+        [[nodiscard]] ttstr getMotionKey() const { return _storageKey; }
 
         void setMaskMode(tjs_int v) { _player.setMaskMode(v); }
         [[nodiscard]] tjs_int getMaskMode() const {
@@ -179,6 +178,7 @@ namespace motion {
                                            tTJSVariant **param,
                                            iTJSDispatch2 *objthis);
         double getVariable(ttstr label);
+        tTJSVariant getVariableFrameList(ttstr label);
 
         void startWind(double minAngle, double maxAngle, double amplitude,
                        double freqX = 0.0, double freqY = 0.0);
@@ -223,6 +223,7 @@ namespace motion {
             iTJSDispatch2 *objthis);
 
         void skip();
+        void skipToSync();
         void addPlayCallback();
         void pass(double dt);
         void progress(double dt);
@@ -252,6 +253,8 @@ namespace motion {
 
         // EmotePlayer-specific state (not on Player)
         tTJSVariant _module;
+        ttstr _storageKey; // motionKey: PSB cache path (SDL3 ref)
+        ttstr _clipLabel; // motion: clip/timeline label (SDL3 ref)
         bool _useD3D = false;
         bool _smoothing = true;
         double _meshDivisionRatio = 1.0;
@@ -267,6 +270,9 @@ namespace motion {
         bool _opengl = false;
         bool _visible = true;
         bool _playCallback = false;
+        // SDL3 ref: isSelfClear — true for motionKey/single-cache draw clear
+        // mode.
+        bool _isSelfClear = true;
 
         // Aligned to libkrkr2.so sub_530260: finalScale = baseScale * userScale
         float _baseScale = 1.0f; // +40 in binary D3DEmotePlayer wrapper

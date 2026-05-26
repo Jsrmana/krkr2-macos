@@ -16,6 +16,7 @@
 #include <spdlog/spdlog.h>
 #include "tjs.h"
 #include "ResourceManager.h"
+#include "RuntimeSupport.h"
 
 namespace PSB {
     class PSBDictionary;
@@ -285,6 +286,11 @@ namespace motion {
         // Aligned to libkrkr2.so: EmoteObject_init (sub_67DBAC) sets Player's
         // activeMotion directly from loaded PSB data without file I/O.
         void loadFromSnapshot(std::shared_ptr<detail::MotionSnapshot> snapshot);
+        // SDL3 ref (EmotePlayer::set_motionKey): bind cached PSB module only.
+        void bindMotionModuleKey(ttstr storageKey);
+        [[nodiscard]] bool hasActiveMotion() const {
+            return _runtime && _runtime->activeMotion != nullptr;
+        }
 
         // Resource management
         void unload(ttstr name);
@@ -410,6 +416,14 @@ namespace motion {
                                     iTJSDispatch2 *objthis);
         tTJSVariant motionList();
         void emoteEdit(tTJSVariant args);
+
+        // Public accessor for EmotePlayer SDL3 play-mode dispatch.
+        ResourceManager &getResourceManagerNative() {
+            return _resourceManagerNative;
+        }
+        const ResourceManager &getResourceManagerNative() const {
+            return _resourceManagerNative;
+        }
 
         // Public accessor for EmotePlayer delegation
         double getActiveMotionWidth() const;

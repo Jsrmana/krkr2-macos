@@ -1,5 +1,7 @@
 #include "ncbind.hpp"
 
+#include <spdlog/spdlog.h>
+
 #define NCB_MODULE_NAME TJS_W("TextRender.dll")
 
 // #define dbg_print TVPAddLog
@@ -8,6 +10,8 @@
 // use Kirikiri-Z rasterizer for layouting
 #include "FontRasterizer.h"
 #include "LayerBitmapIntf.h"
+
+#define LOGGER spdlog::get("plugin")
 
 extern FontRasterizer *GetCurrentRasterizer();
 
@@ -302,6 +306,8 @@ public:
     tTJSVariant getCharacters(int start, int end);
     void clear();
     void done();
+
+    void newline() { LOGGER->warn("no support newline"); }
 
     void resetFont();
     void resetStyle();
@@ -1067,6 +1073,7 @@ NCB_REGISTER_CLASS(TextRenderBase) {
     NCB_METHOD(getCharacters);
     NCB_METHOD(clear);
     NCB_METHOD(done);
+    NCB_METHOD(newline);
 
     NCB_METHOD(resetFont);
     NCB_METHOD(resetStyle);

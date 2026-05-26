@@ -4,7 +4,7 @@ project(krkr2plugin)
 add_library(${PROJECT_NAME} STATIC)
 
 target_sources(${PROJECT_NAME} PUBLIC
-        #    emotePlayer.cpp
+    KAGParser/kagparserex.cpp
     TextRender.cpp
     scriptsEx.cpp
     win32dialog.cpp

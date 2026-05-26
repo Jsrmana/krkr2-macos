@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <stdexcept>
 
 #include "PlayerInternal.h"
 #include "SourceCache.h"
@@ -173,7 +174,7 @@ namespace motion {
     Player::Player(ResourceManager rm, Player *parentPlayer) :
         _runtime(detail::makePlayerRuntime()),
         _resourceManagerNative(std::move(rm)), _parentPlayer(parentPlayer) {
-        LOGGER->info("Motion.Player constructor called");
+        LOGGER->debug("Motion.Player constructor called");
         using ResourceManagerAdaptor = ncbInstanceAdaptor<ResourceManager>;
         if(auto *dispatch = ResourceManagerAdaptor::CreateAdaptor(
                new ResourceManager(_resourceManagerNative))) {
@@ -322,6 +323,47 @@ namespace motion {
             activateMotion(*_runtime, snapshot, &_resourceManagerNative);
             syncVariableKeysFromActiveMotion();
         }
+    }
+
+    void Player::bindMotionModuleKey(ttstr storageKey) {
+        // SDL3 reference: sdl3/emoteplayerclass.cpp set_motionKey()
+        //   _currentfile = _resourceManager->GetPlayerByName(motionKey);
+        // Does NOT start playback — that is play()'s job.
+        const auto loaded = _resourceManagerNative.findLoadedModule(storageKey);
+        if(loaded.Type() != tvtObject) {
+            LOGGER->warn(
+                "Player::bindMotionModuleKey({}): module not in "
+                "ResourceManager cache; call ResourceManager.load() first",
+                storageKey.AsStdString());
+            return;
+        }
+
+        _project = loaded;
+        if(const auto snapshot = detail::lookupModuleSnapshot(loaded)) {
+            loadFromSnapshot(snapshot);
+            LOGGER->debug(
+                "Player::bindMotionModuleKey({}): bound snapshot path={}",
+                storageKey.AsStdString(), snapshot->path);
+            return;
+        }
+
+        // Fallback: resolve via file path (decompiled libkrkr2.so path).
+        if(const auto snapshot =
+               resolveMotion(*_runtime, storageKey, &_resourceManagerNative)) {
+            activateMotion(*_runtime, snapshot, &_resourceManagerNative);
+            syncVariableKeysFromActiveMotion();
+            LOGGER->debug(
+                "Player::bindMotionModuleKey({}): resolved snapshot path={}",
+                storageKey.AsStdString(), snapshot->path);
+            return;
+        }
+
+        LOGGER->error(
+            "Player::bindMotionModuleKey({}): loaded object has no motion "
+            "snapshot",
+            storageKey.AsStdString());
+        throw std::runtime_error(
+            "motionplayer: motionKey module has no parseable motion snapshot");
     }
 
     double Player::getActiveMotionWidth() const {
@@ -838,11 +880,12 @@ namespace motion {
     // oscillation. Full spring simulation not yet implemented for web port —
     // store params only.
     void Player::initPhysics() {
-        // Parameters come from NCB: initPhysics(min, max, amp, freq1, freq2)
-        // In the NCB binding this is a raw callback. The actual parameters
-        // are parsed by the NCB wrapper. Since we store the scale values
-        // (hairScale/partsScale/bustScale) and these physics params would
-        // drive them, we log but accept the call.
+        // SDL3 ref: sdl3/emoteplayerclass.cpp initPhysics() is TODO.
+        // libkrkr2.so stores spring params at player+1136..1152.
+        // Metadata/rule object may arrive via EmotePlayer.initPhysics(rule).
+        LOGGER->info(
+            "Player::initPhysics(): spring simulator not fully reversed; "
+            "accepting call (SDL3 ref: TODO, metadata via setMetadata)");
         // player+1128 = physics object (not created)
         // player+1136..1152 = min, max, amplitude, freq1, freq2
     }

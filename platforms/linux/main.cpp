@@ -10,7 +10,7 @@
 
 int main(int argc, char **argv) {
     gtk_init(&argc, &argv);
-    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::info);
 
     static auto core_logger = spdlog::stdout_color_mt("core");
     static auto tjs2_logger = spdlog::stdout_color_mt("tjs2");

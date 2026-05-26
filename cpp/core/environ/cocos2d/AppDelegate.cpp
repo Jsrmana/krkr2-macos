@@ -76,8 +76,8 @@ bool TVPAppDelegate::applicationDidFinishLaunching() {
     glview->setDesignResolutionSize(designResolutionSize.width,
                                     designResolutionSize.height,
                                     ResolutionPolicy::SHOW_ALL);
-    glview->setFrameSize(designResolutionSize.width * 1.5f,
-                         designResolutionSize.height * 1.5f);
+    // glview->setFrameSize(designResolutionSize.width * 1.5f,
+    //                      designResolutionSize.height * 1.5f);
 #endif
 
     std::vector<std::string> searchPath;

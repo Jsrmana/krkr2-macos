@@ -515,7 +515,7 @@ void tTVPApplication::Run() {
                 msg += title_;
                 msg += "\n";
             }
-            msg += e.GetMessage();
+            msg += e.getMessage();
             const tjs_char *pszBlockName = e.GetBlockName();
             if(pszBlockName && *pszBlockName) {
                 msg += TJS_W("\n@line(");
@@ -531,7 +531,7 @@ void tTVPApplication::Run() {
     } catch(const TJS::eTJS &e) {
         TVPOnError();
         if(!TVPSystemUninitCalled)
-            ShowException(e.GetMessage());
+            ShowException(e.getMessage());
     } catch(const std::exception &e) {
         ShowException(e.what());
     } catch(const char *e) {

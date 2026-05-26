@@ -14,6 +14,7 @@
 #include "RenderUtils.h"
 #include "RenderManager.h"
 #include "SystemImpl.h"
+#include "vkdefine.h"
 
 tTJSNI_Window *TVPWindowLayer::TVPGetActiveWindow() {
     if(!_currentWindowLayer)

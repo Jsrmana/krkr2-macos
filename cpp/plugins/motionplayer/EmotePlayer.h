@@ -78,13 +78,15 @@ namespace emote {
         void draw(tTJSVariant layer) {}
 
         // TODO
-        void startWind(tjs_real start, tjs_real goal, tjs_real speed, tjs_real powMin, tjs_real powMax){  }
+        void startWind(tjs_real start, tjs_real goal, tjs_real speed,
+                       tjs_real powMin, tjs_real powMax) {}
         void stopWind() {}
 
-        void setVariable(tTJSString name, tjs_real value);
-        tjs_real getVariable(tTJSString name);
+        void setVariable(tTJSString name, tjs_real value) {}
+        tjs_real getVariable(tTJSString name) {}
 
-        tTJSVariant getTimelineLabelList(const std::function<bool(int)> &diffFilter) const;
+        tTJSVariant
+        getTimelineLabelList(const std::function<bool(int)> &diffFilter) const;
 
         tTJSVariant getDiffTimelineLabelList() const;
 
@@ -99,7 +101,9 @@ namespace emote {
         }
 
         void setMaskMode(MaskModeType maskMode) { this->_maskMode = maskMode; }
-        [[nodiscard]] MaskModeType getMaskMode() const { return this->_maskMode; }
+        [[nodiscard]] MaskModeType getMaskMode() const {
+            return this->_maskMode;
+        }
 
         void setChara(ttstr chara) { this->_chara = chara; }
         [[nodiscard]] ttstr getChara() const { return _chara; }

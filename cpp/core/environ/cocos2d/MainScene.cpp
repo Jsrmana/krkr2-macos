@@ -694,7 +694,7 @@ tjs_uint TVPGetGraphicCacheTotalBytes();
 void TVPMainScene::update(float delta) {
     ::Application->Run();
     //	if (TVPWindowLayer::_currentWindowLayer)
-    //TVPWindowLayer::_currentWindowLayer->UpdateOverlay();
+    // TVPWindowLayer::_currentWindowLayer->UpdateOverlay();
     iTVPTexture2D::RecycleProcess();
     //_ResotreGLStatues();
     if(_postUpdate)

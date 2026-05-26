@@ -17,9 +17,7 @@ namespace emote {
 
         tTJSVariant load(ttstr path);
 
-        const PSB::PSBFile *getPSBFile() const {
-            return &_psbFile;
-        }
+        const PSB::PSBFile *getPSBFile() const { return &_psbFile; }
 
         static tjs_error setEmotePSBDecryptSeed(tTJSVariant *r, tjs_int count,
                                                 tTJSVariant **p,

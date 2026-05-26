@@ -47,10 +47,6 @@ bool TVPLoadInternalPlugin(const ttstr &_name);
 
 void TVPLoadPlugin(const ttstr &name) {
     auto pluginName = name;
-    // motionplayer.dll and emoteplayer.dll may be same?
-    if(name == TJS_W("emoteplayer.dll"))
-        pluginName = "motionplayer.dll";
-
     if(TVPLoadInternalPlugin(pluginName)) {
         spdlog::debug("Loading Plugin: {} Success", name.AsStdString());
     } else {

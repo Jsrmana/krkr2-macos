@@ -561,14 +561,6 @@ NCB_POST_UNREGIST_CALLBACK(PostUnregistCallback);
 // entry callback (sub_682528) loads motionplayer.dll as a dependency,
 // then registers EmotePlayer into the Motion namespace.
 // ============================================================
-#undef NCB_MODULE_NAME
-#define NCB_MODULE_NAME TJS_W("emoteplayer.dll")
-
-static void EmotePlayerPreRegist() {
-    // Load motionplayer.dll as dependency (matches libkrkr2.so sub_682528)
-    ncbAutoRegister::LoadModule(TJS_W("motionplayer.dll"));
-}
-NCB_PRE_REGIST_CALLBACK(EmotePlayerPreRegist);
 
 NCB_REGISTER_CLASS(D3DEmoteModule) {
     NCB_CONSTRUCTOR(());

@@ -10,11 +10,53 @@ namespace motion {
     // --- updateLayers: 3-phase pipeline ---
     // Aligned to libkrkr2.so Player_updateLayers (0x6BB33C).
     // Operates on persistent MotionNode deque instead of re-walking PSB tree.
+    void Player::updateLayersEmoteLike_sdl3() {
+        auto &nodes = _runtime->nodes;
+        if(nodes.empty()) {
+            return;
+        }
+        const double currentTime = _clampedEvalTime;
+
+        if(_runtime->perNodeEvalData.size() != nodes.size()) {
+            _runtime->perNodeEvalData.resize(nodes.size());
+        }
+        for(size_t ni = 0; ni < nodes.size(); ++ni) {
+            _runtime->perNodeEvalData[ni].evalTime = currentTime;
+        }
+
+        updateLayersPhase1_PreLoop(currentTime);
+        updateLayersPhase2_MainLoop(currentTime);
+        // e-mote 须与全量 Phase3 一致地计算顶点/形状，否则 prepare 的
+        // corners/paintBox 无效，child merge（Phase 2）在画面上无变化。
+        updateLayersPhase3_CameraConstraint();
+        updateLayersPhase3_VertexComputation();
+        updateLayersPhase3_Visibility();
+        updateLayersPhase3_CameraNode();
+        updateLayersPhase3_ShapeAABB();
+        updateLayersPhase3_ShapeGeometry();
+        updateLayersPhase3_MotionSubNode(currentTime);
+        logEmoteFirstEvalDiagnosticsOnce();
+
+        _noUpdateYet = false;
+        _queuing = false;
+        for(size_t ci = 1; ci < nodes.size(); ++ci) {
+            nodes[ci].flags &= ~0x01;
+            nodes[ci].accumulated.dirty = false;
+        }
+        for(auto &evalData : _runtime->perNodeEvalData) {
+            evalData.dirtyFlag = 0;
+        }
+    }
+
     void Player::updateLayers() {
         detail::motionTraceRecordUpdatePlayer(this);
         auto &nodes = _runtime->nodes;
         if(nodes.empty())
             return;
+        if(detail::isEmoteLikeMotion(*_runtime)) {
+            updateLayersEmoteLike_sdl3();
+            return;
+        }
         const auto motionPath = _runtime && _runtime->activeMotion
             ? _runtime->activeMotion->path
             : std::string{};
@@ -106,6 +148,7 @@ namespace motion {
         updateLayersPhase3_ParticleEmitter();
         updateLayersPhase3_ParticleSystem(currentTime);
         updateLayersPhase3_AnchorNode();
+        logEmoteFirstEvalDiagnosticsOnce();
 
         // === Post-loop cleanup ===
         // Aligned to 0x6BBCB4..0x6BBE1C: clear per-node flags and timeline

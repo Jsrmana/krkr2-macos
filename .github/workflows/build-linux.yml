@@ -1,11 +1,8 @@
 name: Build Linux
 
 on:
+  workflow_call:
   workflow_dispatch:
-
-  workflow_run:
-    workflows: ["Code Format Check"]
-    types: [ "completed" ]
 
 env:
   VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
@@ -13,7 +10,6 @@ env:
 
 jobs:
   build-linux:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     env:
       VCPKG_ROOT: ${{ github.workspace }}/.act/vcpkg
@@ -39,11 +35,11 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y perl gcc g++ bison python3 nasm ninja-build
+          sudo apt-get install -y perl gcc g++ bison python3 yasm nasm ninja-build
           
           sudo apt install -y libxft-dev libxext-dev
           sudo apt install -y libxxf86vm-dev libx11-dev libxmu-dev libglu1-mesa-dev libgl2ps-dev libxi-dev libzip-dev libpng-dev libcurl4-gnutls-dev libfontconfig1-dev libsqlite3-dev libglew-dev libssl-dev libgtk-3-dev binutils
-          sudo apt install -y autoconf automake libtool pkg-config
+          sudo apt install -y autoconf autoconf-archive automake libtool pkg-config
           sudo apt install libltdl-dev
 
           wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh

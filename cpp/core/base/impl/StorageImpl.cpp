@@ -14,12 +14,12 @@
 #include <fcntl.h>
 #include <filesystem>
 #include <sys/stat.h>
-#include <cocos/cocos2d.h>
 
+#include "IFileBackend.h"
 #include "MsgIntf.h"
+#include "TVPPlatform.h"
 
 #include "StorageImpl.h"
-#include "WindowImpl.h"
 #include "SysInitIntf.h"
 #include "DebugIntf.h"
 #include "Random.h"
@@ -46,7 +46,7 @@ inline unsigned int lseek64(int fileHandle, __int64 offset, int origin) {
 // extern void vfree(void *p);
 // }
 #endif
-#ifdef CC_TARGET_OS_IPHONE
+#ifdef TVP_PLATFORM_IOS
 #define lseek64 lseek
 #endif
 
@@ -138,7 +138,13 @@ tTJSBinaryStream *tTVPFileMedia::Open(const ttstr &name, tjs_uint32 flags) {
     ttstr _name(name);
     GetLocalName(_name);
 
-    return new tTVPLocalFileStream(origname, _name, flags);
+    if(!TVPGetFileBackend())
+        TVPInitFileBackend();
+
+    if(auto stream = TVPGetFileBackend()->Open(origname, _name, flags))
+        return stream.release();
+
+    TVPThrowExceptionMessage(TVPCannotOpenStorage, origname);
 }
 
 void TVPListDir(const std::string &u8folder,
@@ -269,7 +275,7 @@ static int _utf8_strcasecmp(const char *a, const char *b) {
     return *a - *b;
 }
 
-#if CC_TARGET_PLATFORM == CC_PLATFORM_IOS
+#if defined(TVP_PLATFORM_IOS)
 const std::vector<std::string> &TVPGetApplicationHomeDirectory();
 const std::vector<ttstr> &_getPrefixPath() {
     static std::vector<ttstr> ret;
@@ -338,7 +344,7 @@ void tTVPFileMedia::GetLocallyAccessibleName(ttstr &name) {
         ptr += 2; // skip "./"
         newname.Clear();
     }
-#if CC_TARGET_PLATFORM == CC_PLATFORM_IOS
+#if defined(TVP_PLATFORM_IOS)
     {
         std::string prefix = "/";
         prefix += tTJSNarrowStringHolder(ptr).Buf;
@@ -551,37 +557,6 @@ bool TVPCheckExistentLocalFolder(const ttstr &name) {
     return s.st_mode & S_IFDIR;
 }
 //---------------------------------------------------------------------------
-
-tTVPArchive *TVPOpenZIPArchive(const ttstr &name, tTJSBinaryStream *st,
-                               bool normalizeFileName);
-
-tTVPArchive *TVPOpen7ZArchive(const ttstr &name, tTJSBinaryStream *st,
-                              bool normalizeFileName);
-
-tTVPArchive *TVPOpenTARArchive(const ttstr &name, tTJSBinaryStream *st,
-                               bool normalizeFileName);
-
-static tTVPArchive *(*ArchiveCreators[])(
-    const ttstr &name, tTJSBinaryStream *st,
-    bool normalizeFileName) = { TVPOpenZIPArchive, TVPOpen7ZArchive,
-                                TVPOpenTARArchive, tTVPXP3Archive::Create };
-
-//---------------------------------------------------------------------------
-// TVPOpenArchive
-//---------------------------------------------------------------------------
-tTVPArchive *TVPOpenArchive(const ttstr &name, bool normalizeFileName) {
-    tTJSBinaryStream *st = TVPCreateStream(name);
-    if(!st)
-        return nullptr;
-    for(auto creator : ArchiveCreators) {
-        tTVPArchive *archive = creator(name, st, normalizeFileName);
-        if(archive)
-            return archive;
-        st->SetPosition(0);
-    }
-    delete st;
-    return nullptr;
-}
 
 //---------------------------------------------------------------------------
 int TVPCheckArchive(const ttstr &localname) {
@@ -1279,24 +1254,6 @@ ttstr TVPSearchCD(const ttstr &name) {
     return {};
 }
 //---------------------------------------------------------------------------
-
-tTJSBinaryStream *TVPGetCachedArchiveHandle(void *pointer, const ttstr &name);
-
-void TVPReleaseCachedArchiveHandle(void *pointer, tTJSBinaryStream *stream);
-
-TArchiveStream::TArchiveStream(tTVPArchive *owner, tjs_uint64 off,
-                               tjs_uint64 len) :
-    Owner(owner), StartPos(off), DataLength(len) {
-    Owner->AddRef();
-    _instr = TVPGetCachedArchiveHandle(Owner, Owner->ArchiveName);
-    CurrentPos = 0;
-    _instr->SetPosition(off);
-}
-
-TArchiveStream::~TArchiveStream() {
-    TVPReleaseCachedArchiveHandle(Owner, _instr);
-    Owner->Release();
-}
 
 //---------------------------------------------------------------------------
 // TVPCreateNativeClass_Storages

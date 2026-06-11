@@ -1,5 +1,13 @@
 # KrKr2 Emulator
 
+<p align="center">
+  <a href="https://github.com/2468785842/krkr2/actions/workflows/ci.yml"><img src="https://github.com/2468785842/krkr2/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI Status"></a>
+  <a href="https://github.com/2468785842/krkr2/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/2468785842/krkr2/ci.yml?branch=main&label=format-check&logo=githubactions" alt="Format Check"></a>
+  <a href="https://github.com/2468785842/krkr2/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/2468785842/krkr2/ci.yml?branch=main&label=linux&logo=githubactions" alt="Linux Build"></a>
+  <a href="https://github.com/2468785842/krkr2/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/2468785842/krkr2/ci.yml?branch=main&label=windows&logo=githubactions" alt="Windows Build"></a>
+  <a href="https://github.com/2468785842/krkr2/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/2468785842/krkr2/ci.yml?branch=main&label=android&logo=githubactions" alt="Android Build"></a>
+</p>
+
 This repository contains the **KrKr2 Emulator**, a cross-platform emulator designed to run games made with the **KiriKiri engine** (also known as T Visual Presenter).  
 It supports **Android, Windows, Linux, and MacOS**, allowing users to play KiriKiri engine games on multiple platforms.  
 
@@ -51,6 +59,7 @@ It supports **Android, Windows, Linux, and MacOS**, allowing users to play KiriK
   - `bison@3.8.2+`
   - `python3`
   - `NASM@latest`
+  - `YASM@latest`
 - **Windows**:
   - [ninja@latest](https://github.com/ninja-build/ninja/releases)
   - `Visual Studio 2022`
@@ -67,7 +76,7 @@ It supports **Android, Windows, Linux, and MacOS**, allowing users to play KiriK
   - `bison@3.8.2+`
   - `python3`
   - `NASM@latest`
-  - `YASM`
+  - `YASM@latest`
 - **MacOS**:
   - Xcode
   - `vcpkg@latest`
@@ -76,6 +85,7 @@ It supports **Android, Windows, Linux, and MacOS**, allowing users to play KiriK
   - `bison@3.8.2+`
   - `python3`
   - `NASM@latest`
+  - `YASM@latest`
 
 ---
 
@@ -104,7 +114,7 @@ It supports **Android, Windows, Linux, and MacOS**, allowing users to play KiriK
   ./platforms/android/gradlew -p ./platforms/android assembleDebug
   ```
 
-  > If you encounter `glib` installation issues, see [FAQ#安装glib失败](./doc/FAQ.md#安装glib失败)
+  > If you encounter `glib` installation issues, see [FAQ#安装glib失败](./docs/FAQ.md#安装glib失败)
 
 * **Windows**:
 
@@ -162,7 +172,7 @@ It supports **Android, Windows, Linux, and MacOS**, allowing users to play KiriK
 
 ## Supported Games
 
-* See [games list](./doc/support_games.txt)
+* See [games list](./docs/support_games.txt)
 
 ---
 

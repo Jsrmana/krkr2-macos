@@ -286,6 +286,13 @@ namespace motion {
                 root.delta.posX = _pendingRootX;
                 root.delta.posY = _pendingRootY;
             }
+            if(_emoteScaleState.value > 0.0) {
+                root.delta.scaleX = _emoteScaleState.value;
+                root.delta.scaleY = _emoteScaleState.value;
+            }
+            if(_emoteRotState.value != 0.0) {
+                root.delta.angle = _emoteRotState.value;
+            }
             root.delta.dirty = true;
         }
 

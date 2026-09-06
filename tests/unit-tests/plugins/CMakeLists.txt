@@ -3,6 +3,7 @@ project(TestPlugins LANGUAGES CXX)
 
 set(SOURCES
         psbfile-dll.cpp
+        shrinkCopy-test.cpp
 )
 
 string(REPLACE ".cpp" "" BASENAMES_SOURCES "${SOURCES}")

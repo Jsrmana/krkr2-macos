@@ -10,6 +10,9 @@
 #include "ConfigManager/LocaleConfigManager.h"
 
 #include "audio/include/AudioEngine.h"
+#if CC_TARGET_PLATFORM == CC_PLATFORM_MAC
+#include "apple/macos/MacWindow.h"
+#endif
 
 static cocos2d::Size designResolutionSize(960, 640);
 
@@ -42,7 +45,8 @@ bool TVPAppDelegate::applicationDidFinishLaunching() {
         glview = cocos2d::GLViewImpl::createWithRect(
             "krkr2",
             cocos2d::Rect(0, 0, designResolutionSize.width,
-                          designResolutionSize.height));
+                          designResolutionSize.height), 1.0f,
+            CC_TARGET_PLATFORM == CC_PLATFORM_MAC);
 #else
         glview = cocos2d::GLViewImpl::create("krkr2");
 #endif
@@ -75,6 +79,10 @@ bool TVPAppDelegate::applicationDidFinishLaunching() {
                                     ResolutionPolicy::SHOW_ALL);
     // glview->setFrameSize(designResolutionSize.width * 1.5f,
     //                      designResolutionSize.height * 1.5f);
+#endif
+
+#if CC_TARGET_PLATFORM == CC_PLATFORM_MAC
+    TVPInitializeMacWindow();
 #endif
 
     std::vector<std::string> searchPath;

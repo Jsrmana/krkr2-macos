@@ -93,6 +93,9 @@ public:
     void SetZoomDenom(tjs_int d) { SetZoom(ZoomNumer, d); }
     [[nodiscard]] tjs_int GetZoomDenom() const { return ZoomDenom; }
 
+    void SetFullScreenMode(bool enabled);
+    bool GetFullScreenMode() const;
+
     // dummy function
     void RegisterWindowMessageReceiver(tTVPWMRRegMode mode, void *proc,
                                        const void *userdata) {}
@@ -110,7 +113,6 @@ public:
     void SetPosition(tjs_int, tjs_int) {}
     void SetBorderStyle(tTVPBorderStyle) {}
     void SetStayOnTop(bool) {}
-    void SetFullScreenMode(bool) {}
     tjs_int GetLeft() const { return 0; }
     tjs_int GetTop() const { return 0; }
     tjs_int GetMinWidth() const { return 0; }
@@ -120,7 +122,6 @@ public:
     tjs_int GetInnerWidth() const { return GetWidth(); }
     tjs_int GetInnerHeight() const { return GetHeight(); }
     bool GetStayOnTop() const { return false; }
-    bool GetFullScreenMode() const { return false; }
     [[nodiscard]] tTVPBorderStyle GetBorderStyle() const { return bsNone; }
     void SetTrapKey(bool b) {}
     [[nodiscard]] bool GetTrapKey() const { return false; }

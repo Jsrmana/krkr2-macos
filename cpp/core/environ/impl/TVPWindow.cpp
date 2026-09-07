@@ -15,6 +15,9 @@
 #include "RenderManager.h"
 #include "SystemImpl.h"
 #include "vkdefine.h"
+#if CC_TARGET_PLATFORM == CC_PLATFORM_MAC
+#include "apple/macos/MacWindow.h"
+#endif
 
 tTJSNI_Window *TVPWindowLayer::TVPGetActiveWindow() {
     if(!_currentWindowLayer)
@@ -917,4 +920,17 @@ void TVPWindowLayer::OnKeyPress(tjs_uint16 vk, int repeat, bool prevkeystate,
             return;
         TVPPostInputEvent(new tTVPOnKeyPressInputEvent(tjsNativeInstance, vk));
     }
+}
+void iWindowLayer::SetFullScreenMode(bool enabled) {
+#if CC_TARGET_PLATFORM == CC_PLATFORM_MAC
+    TVPSetMacFullScreen(enabled);
+#endif
+}
+
+bool iWindowLayer::GetFullScreenMode() const {
+#if CC_TARGET_PLATFORM == CC_PLATFORM_MAC
+    return TVPGetMacFullScreen();
+#else
+    return false;
+#endif
 }

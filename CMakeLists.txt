@@ -83,6 +83,16 @@ elseif(MACOS)
     )
 endif()
 
+if(MACOS)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        MACOSX_BUNDLE_GUI_IDENTIFIER "org.github.krkr2.macos"
+        MACOSX_BUNDLE_BUNDLE_NAME "KrKr2"
+        MACOSX_BUNDLE_ICON_FILE "Icon"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "1.5.0"
+        MACOSX_BUNDLE_BUNDLE_VERSION "1.5.0"
+    )
+endif()
+
 target_include_directories(${PROJECT_NAME} PUBLIC ${KRKR2CORE_PATH}/environ/cocos2d)
 
 # external lib

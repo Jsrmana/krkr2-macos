@@ -436,7 +436,11 @@ void TVPMainScene::initialize() {
     cocos2d::Size screenSize = glview->getFrameSize();
     cocos2d::Size designSize = glview->getDesignResolutionSize();
     ScreenRatio = screenSize.height / designSize.height;
+#if CC_TARGET_PLATFORM != CC_PLATFORM_MAC
     designSize.width = designSize.height * screenSize.width / screenSize.height;
+#endif
+    // On macOS SHOW_ALL scales this fixed design canvas after window restores
+    // and resizes; deriving a second aspect ratio would shrink the UI twice.
     initWithSize(designSize);
     addChild(LayerColor::create(Color4B::BLACK, designSize.width,
                                 designSize.height));

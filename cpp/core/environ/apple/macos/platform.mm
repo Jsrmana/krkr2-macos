@@ -29,25 +29,6 @@
 #include "Platform.h"
 #include "tjsString.h"
 
-//bool initWindow(cocos2d::GLView* glView) {
-//
-//    auto director = cocos2d::Director::getInstance();
-//    auto glview = director->getOpenGLView();
-//    auto cocoaWindow = (NSWindow*)glview->getCocoaWindow();
-//
-//    if (cocoaWindow) {
-//        // 现在你可以操作 cocoaWindow 了
-//        [cocoaWindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
-//        [cocoaWindow setStyleMask:[cocoaWindow styleMask] | NSWindowStyleMaskResizable]; // 确保可调整大小（通常默认已有）
-//
-//        // 如果你想在启动时就“最大化”
-////        NSRect screenRect = [[NSScreen mainScreen] visibleFrame];
-////        [cocoaWindow setFrame:screenRect display:YES];
-//        return true;
-//    }
-//    return false;
-//}
-
 bool TVPDeleteFile(const std::string &filename) {
     return unlink(filename.c_str()) == 0;
 }
@@ -455,3 +436,96 @@ bool TVP_utime(const char *name, time_t modtime) {
     return utimes(name, mt) == 0;
 }
 
+
+
+#include "MacWindow.h"
+#include <atomic>
+
+namespace {
+NSWindow *TVPMacWindow = nil;
+std::atomic<bool> TVPMacFullScreen{false};
+bool TVPMacTransition = false;
+int TVPMacPendingFullScreen = -1;
+NSString *const TVPMacFrameName = @"KrKr2WindowedFrame";
+
+void SaveMacWindowFrame() {
+    if(TVPMacWindow && !TVPMacTransition &&
+       !(TVPMacWindow.styleMask & NSWindowStyleMaskFullScreen))
+        [TVPMacWindow saveFrameUsingName:TVPMacFrameName];
+}
+
+void SetMacFullScreenOnMain(bool enabled) {
+    if(!TVPMacWindow) return;
+    if(TVPMacTransition) {
+        TVPMacPendingFullScreen = enabled ? 1 : 0;
+        return;
+    }
+    const bool actual = (TVPMacWindow.styleMask & NSWindowStyleMaskFullScreen) != 0;
+    if(actual == enabled) return;
+    SaveMacWindowFrame();
+    TVPMacTransition = true;
+    TVPMacFullScreen.store(enabled);
+    [TVPMacWindow toggleFullScreen:nil];
+}
+
+void FinishMacFullScreenTransition() {
+    TVPMacTransition = false;
+    const bool actual = (TVPMacWindow.styleMask & NSWindowStyleMaskFullScreen) != 0;
+    TVPMacFullScreen.store(actual);
+    const int pending = TVPMacPendingFullScreen;
+    TVPMacPendingFullScreen = -1;
+    if(pending != -1 && (pending != 0) != actual)
+        dispatch_async(dispatch_get_main_queue(), ^{ SetMacFullScreenOnMain(pending != 0); });
+}
+}
+
+void TVPInitializeMacWindow() {
+    if(TVPMacWindow) return;
+    auto *view = cocos2d::Director::getInstance()->getOpenGLView();
+    TVPMacWindow = (NSWindow *)view->getCocoaWindow();
+    if(!TVPMacWindow) return;
+    TVPMacWindow.styleMask |= NSWindowStyleMaskResizable;
+    TVPMacWindow.collectionBehavior |= NSWindowCollectionBehaviorFullScreenPrimary;
+    TVPMacWindow.contentMinSize = NSMakeSize(480, 320);
+    [TVPMacWindow setFrameUsingName:TVPMacFrameName];
+
+    // Observe instead of replacing the GLFW delegate, which owns resize/input events.
+    auto *center = NSNotificationCenter.defaultCenter;
+    for(NSString *name in @[NSWindowWillEnterFullScreenNotification,
+                            NSWindowWillExitFullScreenNotification]) {
+        [center addObserverForName:name object:TVPMacWindow queue:nil
+                        usingBlock:^(NSNotification *note) {
+            if([note.name isEqualToString:NSWindowWillEnterFullScreenNotification]) {
+                SaveMacWindowFrame();
+                TVPMacFullScreen.store(true);
+            } else TVPMacFullScreen.store(false);
+            TVPMacTransition = true;
+        }];
+    }
+    for(NSString *name in @[NSWindowDidEnterFullScreenNotification,
+                            NSWindowDidExitFullScreenNotification]) {
+        [center addObserverForName:name object:TVPMacWindow queue:nil
+                        usingBlock:^(NSNotification *) { FinishMacFullScreenTransition(); }];
+    }
+    for(NSString *name in @[NSWindowDidResizeNotification, NSWindowDidMoveNotification,
+                            NSWindowWillCloseNotification]) {
+        [center addObserverForName:name object:TVPMacWindow queue:nil
+                        usingBlock:^(NSNotification *) { SaveMacWindowFrame(); }];
+    }
+    NSMenu *menu = NSApp.windowsMenu;
+    if(menu && [menu indexOfItemWithTarget:nil andAction:@selector(toggleFullScreen:)] < 0) {
+        [menu addItem:NSMenuItem.separatorItem];
+        NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:@"Toggle Full Screen"
+            action:@selector(toggleFullScreen:) keyEquivalent:@"f"];
+        item.keyEquivalentModifierMask = NSEventModifierFlagControl | NSEventModifierFlagCommand;
+        [menu addItem:item];
+        [item release];
+    }
+}
+
+void TVPSetMacFullScreen(bool enabled) {
+    if(NSThread.isMainThread) SetMacFullScreenOnMain(enabled);
+    else dispatch_async(dispatch_get_main_queue(), ^{ SetMacFullScreenOnMain(enabled); });
+}
+
+bool TVPGetMacFullScreen() { return TVPMacFullScreen.load(); }

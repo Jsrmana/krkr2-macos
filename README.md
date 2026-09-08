@@ -1,3 +1,20 @@
+# KrKr2 for macOS arm64
+
+Apple Silicon 맥에서 빌드하고 실행을 검증한 KrKr2 보존본입니다.
+[2468785842/krkr2](https://github.com/2468785842/krkr2)의 원본 이력을 유지하며 macOS 개선 사항을 추가했습니다.
+
+- `shrinkCopy.dll` 기능을 네이티브 플러그인으로 포함했습니다.
+- 창 크기 조절, 비율 유지, 초록색 버튼과 Control + Command + F 전체화면 전환을 지원합니다.
+- 게임의 `Window.fullScreen` 설정을 macOS 전체화면에 연결합니다.
+- 창 크기와 위치를 저장하고 다시 실행할 때 복원합니다.
+
+[한국어 빌드·복원 안내](docs/MACOS_KO.md) · [작업 및 검증 기록](docs/MACOS_HISTORY.md)
+
+게임 데이터·세이브 파일은 포함하지 않습니다. 아래 내용은 원본 프로젝트의 안내입니다.
+원저작자 및 구성 요소의 저작권·라이선스 고지는 그대로 보존합니다.
+
+---
+
 # KrKr2 Emulator
 
 <p align="center">

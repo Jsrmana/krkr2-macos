@@ -125,8 +125,8 @@ namespace Csd {
         // 中间标题按钮
         const auto titleBtn =
             Button::create("img/empty.png", "img/gray.png", "img/empty.png");
-        cocos2d::Label *l = cocos2d::Label::create();
-        l->setSystemFontName("NotoSansCJK-Regular.ttc");
+        auto *l = cocos2d::Label::createWithTTF(
+            "", "NotoSansCJK-Regular.ttc", 32);
         titleBtn->ignoreContentAdaptWithSize(false);
         titleBtn->setTitleLabel(l);
         titleBtn->setName("title");

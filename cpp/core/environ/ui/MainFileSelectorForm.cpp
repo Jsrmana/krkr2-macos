@@ -1,5 +1,6 @@
 #include "MainFileSelectorForm.h"
 
+#include <algorithm>
 #include <filesystem>
 
 #include "cocos2d.h"
@@ -594,6 +595,12 @@ void TVPMainFileSelectorForm::HistoryCell::initInfo(
     _scrollview->setScrollBarEnabled(false);
     _scrollview->setPropagateTouchEvents(true);
 
+#if CC_TARGET_PLATFORM == CC_PLATFORM_MAC
+    // Keep long game names readable in the narrow recent-files pane.
+    _prefix->setFontSize(18);
+    _path->setFontSize(26);
+    _file->setFontSize(18);
+#endif
     _prefix->setString(prefix);
     _path->setString(pathname);
     _file->setString(filename);
@@ -629,6 +636,13 @@ void TVPMainFileSelectorForm::HistoryCell::rearrangeLayout() {
     _panel_delete->setPositionX(viewSize.width + btnw);
     viewSize.width += btnw + btnw;
     _scrollview->setInnerContainerSize(viewSize);
+#if CC_TARGET_PLATFORM == CC_PLATFORM_MAC
+    // Start at the game directory name, not its tail or the common parent path.
+    const auto nameOrigin = container->convertToNodeSpace(
+        _path->convertToWorldSpace(Vec2::ZERO));
+    offsetx = -std::max(0.0f, std::min(nameOrigin.x,
+        viewSize.width - _scrollview->getContentSize().width));
+#endif
     container->setPosition(offsetx, 0);
 }
 

@@ -58,6 +58,14 @@ Node *CSBReader::Load(const char *filename) {
     FileName = filename;
     Node *ret = CSLoader::createNode(filename, [this](Ref *p) {
         Node *node = dynamic_cast<Node *>(p);
+#if CC_TARGET_PLATFORM == CC_PLATFORM_MAC
+        // Legacy CSB files reference DroidSansFallback.ttf, which is not
+        // bundled. Use the bundled CJK font instead of a system-font fallback.
+        if(auto *text = dynamic_cast<Text *>(node)) {
+            if(text->getType() == Text::Type::SYSTEM)
+                text->setFontName("NotoSansCJK-Regular.ttc");
+        }
+#endif
         std::string name = node->getName();
         if(!name.empty())
             operator[](name) = node;

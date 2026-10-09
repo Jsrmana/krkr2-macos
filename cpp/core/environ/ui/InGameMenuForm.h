@@ -13,8 +13,10 @@ public:
     void bindFooterController(const Node *allNodes) override {}
 
     void initMenu(const std::string &title, tTJSNI_MenuItem *item);
+    void rearrangeLayout() override;
 
 private:
+    bool initMenuForm();
     cocos2d::ui::Widget *createMenuItem(int idx, tTJSNI_MenuItem *item,
                                         const std::string &caption);
 

@@ -90,13 +90,15 @@ bool TVPGameMainMenu::init() {
             (tjs_intptr_t)TVPWindowLayer::TVPGetActiveWindow());
         if(!menuobj)
             return;
-        tTJSNI_MenuItem *menu;
-        menuobj->NativeInstanceSupport(TJS_NIS_GETINSTANCE,
-                                       tTJSNC_MenuItem::ClassID,
-                                       (iTJSNativeInstance **)&menu);
-        if(!menu->GetChildren().empty())
-            TVPMainScene::GetInstance()->pushUIForm(
-                TVPInGameMenuForm::create("GameMenu", menu));
+        tTJSNI_MenuItem *menu = nullptr;
+        if(TJS_FAILED(menuobj->NativeInstanceSupport(
+               TJS_NIS_GETINSTANCE, tTJSNC_MenuItem::ClassID,
+               (iTJSNativeInstance **)&menu)) || !menu)
+            return;
+        if(!menu->GetChildren().empty()) {
+            if(auto *form = TVPInGameMenuForm::create("GameMenu", menu))
+                TVPMainScene::GetInstance()->pushUIForm(form);
+        }
         shrink();
     });
 

@@ -1,10 +1,9 @@
 #include "InGameMenuForm.h"
+#include <algorithm>
 #include "cocos2d/MainScene.h"
 #include "ui/UIButton.h"
 #include "ui/UIListView.h"
-#include "ui/UIText.h"
 #include "MenuItemIntf.h"
-#include "ui/UIHelper.h"
 #include "tjsGlobalStringMap.h"
 #include "csd/CsdUIFactory.h"
 
@@ -14,10 +13,63 @@ using namespace cocos2d::ui;
 TVPInGameMenuForm *TVPInGameMenuForm::create(const std::string &title,
                                              tTJSNI_MenuItem *item) {
     auto *ret = new TVPInGameMenuForm;
+    if(!item || !ret->initMenuForm()) {
+        delete ret;
+        return nullptr;
+    }
     ret->autorelease();
-    ret->initFromFile(Csd::createNaviBar(), Csd::createListView(), nullptr);
     ret->initMenu(title, item);
     return ret;
+}
+
+bool TVPInGameMenuForm::initMenuForm() {
+    if(!Node::init())
+        return false;
+
+    // The legacy Node* initFromFile overload is a no-op. Build and bind
+    // this form explicitly before initMenu accesses the list.
+    const auto size = TVPMainScene::GetInstance()->getUINodeSize();
+    const float scale = TVPMainScene::GetInstance()->getUIScale();
+    NaviBar.Root = Csd::createNaviBarWithMenu(
+        Size(size.width / scale, 120), scale);
+    auto *background = NaviBar.Root->getChildByName("background");
+    background->setPosition(Vec2::ZERO);
+    NaviBar.Left = background->getChildByName<Button *>("left");
+    NaviBar.Right = background->getChildByName<Button *>("right");
+    NaviBar.Right->setVisible(false);
+    bindHeaderController(background);
+    addChild(NaviBar.Root);
+
+    RootNode = Widget::create();
+    RootNode->setAnchorPoint(Vec2::ZERO);
+    auto *list = ListView::create();
+    list->setAnchorPoint(Vec2::ZERO);
+    list->setName("list");
+    list->setDirection(ScrollView::Direction::VERTICAL);
+    list->setBounceEnabled(true);
+    list->setTouchEnabled(true);
+    list->setItemsMargin(11);
+    list->setBackGroundColorType(Layout::BackGroundColorType::SOLID);
+    list->setBackGroundColor(Color3B(42, 42, 42));
+    list->setBackGroundColorOpacity(255);
+    RootNode->addChild(list);
+    addChild(RootNode);
+    bindBodyController(RootNode);
+    rearrangeLayout();
+    return true;
+}
+
+void TVPInGameMenuForm::rearrangeLayout() {
+    const auto size = TVPMainScene::GetInstance()->getUINodeSize();
+    const float scale = TVPMainScene::GetInstance()->getUIScale();
+    setContentSize(size);
+    const Size bodySize(size.width / scale,
+                        std::max(0.0f, size.height / scale - 120));
+    RootNode->setContentSize(bodySize);
+    RootNode->setScale(scale);
+    _list->setContentSize(bodySize);
+    NaviBar.Root->setScale(scale);
+    NaviBar.Root->setPosition(0, bodySize.height * scale);
 }
 
 void TVPInGameMenuForm::bindHeaderController(const Node *allNodes) {
@@ -54,6 +106,8 @@ void TVPInGameMenuForm::initMenu(const std::string &title,
     for(int i = 0; i < count; ++i) {
         tTJSNI_MenuItem *subitem =
             static_cast<tTJSNI_MenuItem *>(item->GetChildren().at(i));
+        if(!subitem->GetVisible())
+            continue;
         ttstr caption;
         subitem->GetCaption(caption);
         if(caption.IsEmpty() || caption == TJS_W("+"))
@@ -73,7 +127,8 @@ TVPInGameMenuForm::createMenuItem(int idx, tTJSNI_MenuItem *item,
     if(!item->GetChildren().empty()) {
         ret = CreatePreferenceItem<tPreferenceItemSubDir>(idx, size, caption);
         ret->addClickEventListener([=](Ref *) {
-            TVPMainScene::GetInstance()->pushUIForm(create(caption, item));
+            if(auto *form = create(caption, item))
+                TVPMainScene::GetInstance()->pushUIForm(form);
         });
     } else if(item->GetGroup() > 0 || item->GetRadio()) {
         auto getter = [=]() -> bool { return item->GetChecked(); };
@@ -109,10 +164,11 @@ TVPInGameMenuForm::createMenuItem(int idx, tTJSNI_MenuItem *item,
         });
         ret->setTouchEnabled(true);
     }
+    ret->setEnabled(item->GetEnabled());
     return ret;
 }
 
 void TVPShowPopMenu(tTJSNI_MenuItem *menu) {
-    TVPMainScene::GetInstance()->pushUIForm(
-        TVPInGameMenuForm::create(std::string(), menu));
+    if(auto *form = TVPInGameMenuForm::create(std::string(), menu))
+        TVPMainScene::GetInstance()->pushUIForm(form);
 }

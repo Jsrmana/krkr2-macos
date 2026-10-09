@@ -3,6 +3,7 @@
 #include "cocos2d/MainScene.h"
 #include "ui/UIButton.h"
 #include "ui/UIListView.h"
+#include "ui/UIText.h"
 #include "MenuItemIntf.h"
 #include "tjsGlobalStringMap.h"
 #include "csd/CsdUIFactory.h"
@@ -164,7 +165,26 @@ TVPInGameMenuForm::createMenuItem(int idx, tTJSNI_MenuItem *item,
         });
         ret->setTouchEnabled(true);
     }
-    ret->setEnabled(item->GetEnabled());
+    // KAG can change enabled while text/scene transitions finish. Do not keep
+    // the state captured when the menu first opened for the life of the row.
+    // Retain the TJS owner while the UI callbacks refer to its native instance.
+    const tTJSVariant owner(item->GetOwnerNoAddRef());
+    NodeMap nodes(nullptr, ret);
+    auto *label = nodes.findController<Text>("title", false);
+    auto refresh = [ret, item, label, owner](float) {
+        auto *object = owner.AsObjectNoAddRef();
+        bool enabled = object && object->IsValid(
+            0, nullptr, nullptr, object) == TJS_S_TRUE;
+        for(auto *current = item; enabled && current;
+            current = dynamic_cast<tTJSNI_MenuItem *>(current->GetParent()))
+            enabled = current->GetEnabled();
+        ret->setEnabled(enabled);
+        if(label)
+            label->setTextColor(enabled ? Color4B::WHITE
+                                       : Color4B(128, 128, 128, 255));
+    };
+    refresh(0);
+    ret->schedule(refresh, 0.1f, "menu_enabled");
     return ret;
 }
 

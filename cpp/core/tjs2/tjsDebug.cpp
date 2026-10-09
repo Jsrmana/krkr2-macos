@@ -11,12 +11,21 @@
 #include "tjsCommHead.h"
 
 #include <algorithm>
+#include <mutex>
 #include "tjsDebug.h"
 #include "tjsHashSearch.h"
 #include "tjsInterCodeGen.h"
 #include "tjsGlobalStringMap.h"
 
 namespace TJS {
+
+    // XP3 audio decoders run independent TJS engines on worker threads.
+    // Object bookkeeping is process-wide and can re-enter while releasing
+    // tracked objects. Keep the mutex alive through static teardown.
+    static std::recursive_mutex &ObjectHashMutex() {
+        static auto *mutex = new std::recursive_mutex;
+        return *mutex;
+    }
 
     //---------------------------------------------------------------------------
     // ObjectHashMap : hash map to track object
@@ -388,13 +397,20 @@ namespace TJS {
     };
 
     //---------------------------------------------------------------------------
-    void TJSAddRefObjectHashMap() { tTJSObjectHashMap::AddRef(); }
+    void TJSAddRefObjectHashMap() {
+        std::lock_guard<std::recursive_mutex> lock(ObjectHashMutex());
+        tTJSObjectHashMap::AddRef();
+    }
 
     //---------------------------------------------------------------------------
-    void TJSReleaseObjectHashMap() { tTJSObjectHashMap::Release(); }
+    void TJSReleaseObjectHashMap() {
+        std::lock_guard<std::recursive_mutex> lock(ObjectHashMutex());
+        tTJSObjectHashMap::Release();
+    }
 
     //---------------------------------------------------------------------------
     void TJSAddObjectHashRecord(void *object) {
+        std::lock_guard<std::recursive_mutex> lock(ObjectHashMutex());
         if(!TJSObjectHashMap && !TJSObjectHashMapLog)
             return;
 
@@ -425,6 +441,7 @@ namespace TJS {
 
     //---------------------------------------------------------------------------
     void TJSRemoveObjectHashRecord(void *object) {
+        std::lock_guard<std::recursive_mutex> lock(ObjectHashMutex());
         if(TJSObjectHashMap) {
             TJSObjectHashMap->Remove(object);
         } else if(TJSObjectHashMapLog) {
@@ -435,6 +452,7 @@ namespace TJS {
 
     //---------------------------------------------------------------------------
     void TJSObjectHashSetType(void *object, const ttstr &type) {
+        std::lock_guard<std::recursive_mutex> lock(ObjectHashMutex());
         if(TJSObjectHashMap) {
             TJSObjectHashMap->SetType(object, type);
         } else if(TJSObjectHashMapLog) {
@@ -447,6 +465,7 @@ namespace TJS {
     //---------------------------------------------------------------------------
     void TJSSetObjectHashFlag(void *object, tjs_uint32 flags_to_change,
                               tjs_uint32 bits) {
+        std::lock_guard<std::recursive_mutex> lock(ObjectHashMutex());
         if(TJSObjectHashMap) {
             TJSObjectHashMap->SetFlag(object, flags_to_change, bits);
         } else if(TJSObjectHashMapLog) {
@@ -459,12 +478,14 @@ namespace TJS {
 
     //---------------------------------------------------------------------------
     void TJSReportAllUnfreedObjects(iTJSConsoleOutput *output) {
+        std::lock_guard<std::recursive_mutex> lock(ObjectHashMutex());
         if(TJSObjectHashMap)
             TJSObjectHashMap->ReportAllUnfreedObjects(output);
     }
 
     //---------------------------------------------------------------------------
     bool TJSObjectHashAnyUnfreed() {
+        std::lock_guard<std::recursive_mutex> lock(ObjectHashMutex());
         if(TJSObjectHashMap)
             return TJSObjectHashMap->AnyUnfreed();
         return false;
@@ -472,6 +493,7 @@ namespace TJS {
 
     //---------------------------------------------------------------------------
     void TJSObjectHashMapSetLog(tTJSBinaryStream *stream) {
+        std::lock_guard<std::recursive_mutex> lock(ObjectHashMutex());
         // Set log object. The log file object should not freed until
         // the program (the program is the Process, not RTL nor TJS2
         // framework).
@@ -482,24 +504,28 @@ namespace TJS {
 
     //---------------------------------------------------------------------------
     void TJSWriteAllUnfreedObjectsToLog() {
+        std::lock_guard<std::recursive_mutex> lock(ObjectHashMutex());
         if(TJSObjectHashMap && TJSObjectHashMapLog)
             TJSObjectHashMap->WriteAllUnfreedObjectsToLog();
     }
 
     //---------------------------------------------------------------------------
     void TJSWarnIfObjectIsDeleting(iTJSConsoleOutput *output, void *object) {
+        std::lock_guard<std::recursive_mutex> lock(ObjectHashMutex());
         if(TJSObjectHashMap)
             TJSObjectHashMap->WarnIfObjectIsDeleting(output, object);
     }
 
     //---------------------------------------------------------------------------
     void TJSReplayObjectHashMapLog() {
+        std::lock_guard<std::recursive_mutex> lock(ObjectHashMutex());
         if(TJSObjectHashMap && TJSObjectHashMapLog)
             TJSObjectHashMap->ReplayLog();
     }
 
     //---------------------------------------------------------------------------
     ttstr TJSGetObjectTypeInfo(void *object) {
+        std::lock_guard<std::recursive_mutex> lock(ObjectHashMutex());
         if(TJSObjectHashMap)
             return TJSObjectHashMap->GetType(object);
         return {};
@@ -507,6 +533,7 @@ namespace TJS {
 
     //---------------------------------------------------------------------------
     tjs_uint32 TJSGetObjectHashCheckFlag(void *object) {
+        std::lock_guard<std::recursive_mutex> lock(ObjectHashMutex());
         if(TJSObjectHashMap)
             return TJSObjectHashMap->GetFlag(object);
         return 0;
@@ -518,7 +545,21 @@ namespace TJS {
     //---------------------------------------------------------------------------
     class tTJSStackTracer;
 
-    tTJSStackTracer *TJSStackTracer;
+    bool TJSObjectHashMapEnabled() {
+        std::lock_guard<std::recursive_mutex> lock(ObjectHashMutex());
+        return TJSObjectHashMap || TJSObjectHashMapLog;
+    }
+
+    bool TJSObjectTypeInfoEnabled() {
+        std::lock_guard<std::recursive_mutex> lock(ObjectHashMutex());
+        return TJSObjectHashMap != nullptr;
+    }
+
+    bool TJSObjectFlagEnabled() {
+        return TJSObjectTypeInfoEnabled();
+    }
+
+    thread_local tTJSStackTracer *TJSStackTracer = nullptr;
 
     //---------------------------------------------------------------------------
     struct tTJSStackRecord {

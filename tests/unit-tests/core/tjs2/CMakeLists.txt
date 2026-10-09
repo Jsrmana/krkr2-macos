@@ -4,6 +4,7 @@ project(TestTjs2 LANGUAGES CXX)
 set(SOURCES
         tjs.cpp
         tjsString.cpp
+        tjsDebug-thread.cpp
 )
 
 string(REPLACE ".cpp" "" BASENAMES_SOURCES "${SOURCES}")

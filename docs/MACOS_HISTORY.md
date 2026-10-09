@@ -101,3 +101,21 @@ macOS에서 해당 Text 위젯이 앱에 포함된 `NotoSansCJK-Regular.ttc`를 
 추가 빌드와 CTest 10개 및 앱 서명 검증이 통과했습니다. 업데이트 후 사용자는
 메뉴가 정상으로 실행된다고 확인했습니다. 활성 상태 갱신 또는 재실행 중 어느 것이
 보고된 현상을 해소했는지는 구분되지 않았습니다.
+
+### 장면 전환 중 음성 해독 스레드 충돌
+
+최신 macOS 충돌 기록에서는 Vorbis 음성을 XP3에서 읽는 작업 스레드가
+XP3 필터용 TJS 엔진을 생성하던 중 `TJSAddObjectHashRecord` →
+`TJSGetStackTraceString` → `GetPositionDescriptionString`에서 잘못된 주소에 접근했습니다.
+별도의 이전 기록에서도 `TJSStackTracerSetCodePointer`에서 충돌한 흔적이 있었습니다.
+
+TJS의 디버그 실행 스택은 모든 스레드가 한 포인터를 공유하고 있었습니다.
+작업 스레드에서 스택을 조회했을 때 메인 스레드의 활성 스크립트 기록이 보이는
+회귀 테스트를 만들었으며, 기존 코드에서 실패함을 확인했습니다.
+실행 스택을 `thread_local`로 분리하고, 공유 객체 추적 테이블과 로그는
+재진입 가능한 잠금으로 보호했습니다. 게임 파일이나 호환 패치는 변경하지 않았습니다.
+
+검증: 전체 CTest **12개 통과**. 새 스레드 격리·동시 객체 추적 테스트를 각각
+20회 반복해 모두 통과했습니다. arm64 앱 번들과 ad-hoc 서명도 검증했습니다.
+독립된 앱 식별자를 가진 `outputs/krkr2-audio-fix.app`을 제공하며,
+`outputs/krkr2-menu-fix.app`에도 동일한 엔진 수정을 반영했습니다.

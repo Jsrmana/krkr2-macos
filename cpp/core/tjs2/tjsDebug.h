@@ -111,17 +111,9 @@ namespace TJS {
 
     extern void TJSReplayObjectHashMapLog();
 
-    static inline bool TJSObjectHashMapEnabled() {
-        return TJSObjectHashMap || TJSObjectHashMapLog;
-    }
-
-    extern inline bool TJSObjectTypeInfoEnabled() {
-        return nullptr != TJSObjectHashMap;
-    }
-
-    extern inline bool TJSObjectFlagEnabled() {
-        return nullptr != TJSObjectHashMap;
-    }
+    bool TJSObjectHashMapEnabled();
+    bool TJSObjectTypeInfoEnabled();
+    bool TJSObjectFlagEnabled();
 
     extern ttstr TJSGetObjectTypeInfo(void *object);
 
@@ -135,7 +127,7 @@ namespace TJS {
 
     class tTJSInterCodeContext;
 
-    extern tTJSStackTracer *TJSStackTracer;
+    extern thread_local tTJSStackTracer *TJSStackTracer;
 
     extern void TJSAddRefStackTracer();
 

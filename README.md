@@ -7,8 +7,10 @@ Apple Silicon 맥에서 빌드하고 실행을 검증한 KrKr2 보존본입니�
 - 창 크기 조절, 비율 유지, 초록색 버튼과 Control + Command + F 전체화면 전환을 지원합니다.
 - 게임의 `Window.fullScreen` 설정을 macOS 전체화면에 연결합니다.
 - 창 크기와 위치를 저장하고 다시 실행할 때 복원합니다.
+- 게임 메뉴 초기화 충돌과 macOS의 최근 파일명·메뉴 글자 깨짐을 수정했습니다.
+- 음성 해독 스레드와 게임 스레드의 TJS 실행 기록을 분리해 장면 전환 충돌을 수정했습니다.
 
-[한국어 빌드·복원 안내](docs/MACOS_KO.md) · [작업 및 검증 기록](docs/MACOS_HISTORY.md)
+[한국어 빌드·복원 안내](docs/MACOS_KO.md) · [작업 및 검증 기록](docs/MACOS_HISTORY.md) · [AI 협업 사례와 현재 상태](docs/AI_COLLABORATION_CASE_KO.md)
 
 게임 데이터·세이브 파일은 포함하지 않습니다. 아래 내용은 원본 프로젝트의 안내입니다.
 원저작자 및 구성 요소의 저작권·라이선스 고지는 그대로 보존합니다.
